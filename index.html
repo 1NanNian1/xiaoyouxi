@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>祝福卡片生成器</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #f0f7ff; 
+            font-family: 'Segoe UI', 微软雅黑, sans-serif; 
+            text-align: center;
+            min-height: 100vh;
+            overflow: hidden; /* 初始隐藏滚动条 */
+        }
+
+        /* 动态背景效果 */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, #e6f7ff 0%, #f0f7ff 100%);
+            z-index: -1;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(79, 172, 254, 0.1);
+            animation: float 8s infinite ease-in-out;
+        }
+
+        /* 标题样式（开始页面） */
+        .welcome-title {
+            font-size: 42px;
+            color: #333;
+            margin-top: 180px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeUp 1s 0.3s forwards;
+        }
+
+        /* 开始按钮样式（带光效和动画） */
+        .start-container {
+            position: relative;
+            display: inline-block;
+            margin-top: 60px;
+        }
+        .start-btn {
+            padding: 18px 50px;
+            font-size: 24px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(79, 172, 254, 0.4);
+            position: relative;
+            z-index: 2;
+        }
+        .start-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(79, 172, 254, 0.5);
+        }
+        .start-btn:active {
+            transform: translateY(1px);
+        }
+        /* 按钮光晕效果 */
+        .btn-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 50px;
+            filter: blur(20px);
+            opacity: 0.6;
+            z-index: 1;
+            animation: pulse 2s infinite;
+        }
+
+        /* 副标题（开始页面） */
+        .welcome-subtitle {
+            color: #666;
+            margin-top: 30px;
+            font-size: 18px;
+            letter-spacing: 1px;
+            opacity: 0;
+            animation: fadeIn 1s 0.6s forwards;
+        }
+
+        /* 后续页面元素样式（保持原有逻辑） */
+        h1 {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 40px;
+            letter-spacing: 0.5px;
+            display: none;
+        }
+        .name-container {
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+            display: none;
+        }
+        .name-box {
+            padding: 25px 40px;
+            font-size: 32px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .name-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .fade-in {
+            animation: fadeIn 0.6s forwards;
+        }
+        @keyframes fadeIn {
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+            }
+        }
+        .fade-out {
+            animation: fadeOut 0.8s forwards;
+        }
+        @keyframes fadeOut {
+            100% { 
+                opacity: 0; 
+                transform: translateY(-20px);
+            }
+        }
+        .loading {
+            font-size: 28px;
+            color: #555;
+            margin-top: 150px;
+            display: none;
+            letter-spacing: 1px;
+        }
+        .card {
+            position: absolute;
+            padding: 18px 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: float 0.6s ease-out;
+            user-select: none;
+            font-size: 16px;
+        }
+        @keyframes float {
+            from { transform: scale(0.3); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .music-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            display: none;
+        }
+        .music-icon {
+            width: 24px;
+            height: 24px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234facfe'%3E%3Cpath d='M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6zm-2 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z'/%3E%3C/svg%3E") no-repeat center;
+        }
+        .music-pause {
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234facfe'%3E%3Cpath d='M6 19h4V5H6v14zm8-14v14h4V5h-4z'/%3E%3C/svg%3E") no-repeat center;
+        }
+
+        /* 动画定义 */
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.8;
+            }
+        }
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态背景粒子 -->
+    <div class="bg-particles" id="bgParticles"></div>
+
+    <!-- 音频元素（隐藏控件） -->
+    <audio id="bgMusic" loop hidden>
+        <source src="bg.mp3" type="audio/mpeg">
+     您的浏览器不支持音频播放
+    </audio>
+
+    <!-- 开始页面元素 -->
+    <h2 class="welcome-title">回家的诱惑群专属</h2>
+    <div class="start-container">
+        <button class="start-btn" id="startBtn">点击开始咯</button>
+        <div class="btn-glow"></div>
+    </div>
+    <p class="welcome-subtitle">开启十一月新篇章</p>
+
+    <!-- 后续页面元素 -->
+    <div class="music-control" id="musicControl">
+        <div class="music-icon" id="musicIcon"></div>
+    </div>
+    <h1>欢迎各位大怨种们~</h1>
+    <div class="name-container" id="nameContainer">
+        <div class="name-box" id="nameBox"></div>
+    </div>
+    <div class="loading" id="loading">准备好了吗各位老弟？...</div>
+
+    <script>
+        // 生成动态背景粒子
+        function createParticles() {
+            const container = document.getElementById('bgParticles');
+            const count = 30; // 粒子数量
+
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // 随机大小和位置
+                const size = Math.random() * 100 + 50;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${Math.random() * 100}%`;
+                particle.style.top = `${Math.random() * 100}%`;
+                particle.style.animationDelay = `${Math.random() * 5}s`;
+                particle.style.animationDuration = `${Math.random() * 10 + 5}s`;
+                
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        // 名字列表
+        const names = [
+            "陆昆", "孟雪亚", "于冰冰", 
+            "杨童扉", "赵妍妍", 
+            "徐灿灿", "王云飞", "霍玉乐"
+        ];
+
+        // DOM元素
+        const startBtn = document.getElementById('startBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        const musicControl = document.getElementById('musicControl');
+        const musicIcon = document.getElementById('musicIcon');
+        const nameContainer = document.getElementById('nameContainer');
+        const nameBox = document.getElementById('nameBox');
+        const title = document.querySelector('h1');
+        const loading = document.getElementById('loading');
+        const welcomeElements = document.querySelectorAll('.welcome-title, .start-container, .welcome-subtitle');
+
+        // 音乐控制变量
+        let isPlaying = false;
+
+        // 点击开始按钮触发所有流程
+        startBtn.addEventListener('click', () => {
+            // 1. 开始页面元素淡出
+            welcomeElements.forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'all 0.5s ease';
+            });
+
+            // 2. 延迟显示后续元素（等待淡出动画完成）
+            setTimeout(() => {
+                // 隐藏开始页面元素
+                welcomeElements.forEach(el => el.style.display = 'none');
+                document.body.style.overflow = 'auto'; // 恢复滚动
+
+                // 显示标题、名字容器和音乐控制按钮
+                title.style.display = 'block';
+                title.style.opacity = '0';
+                title.style.animation = 'fadeIn 1s forwards';
+                
+                nameContainer.style.display = 'flex';
+                musicControl.style.display = 'flex';
+
+                // 3. 播放音乐
+                bgMusic.play().then(() => {
+                    isPlaying = true;
+                    musicIcon.classList.add('music-pause');
+                }).catch(e => {
+                    console.log("音乐播放需要浏览器授权：", e);
+                });
+
+                // 4. 开始显示名字轮播
+                startNameLoop();
+            }, 500);
+        });
+
+        // 名字轮播逻辑
+        function startNameLoop() {
+            let currentIndex = 0;
+            // 显示第一个名字
+            nameBox.innerText = names[0];
+            nameBox.classList.add('fade-in');
+
+            // 每2秒切换一个名字
+            const nameInterval = setInterval(() => {
+                nameBox.classList.remove('fade-in');
+                nameBox.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    currentIndex = (currentIndex + 1) % names.length;
+                    nameBox.innerText = names[currentIndex];
+                    nameBox.classList.remove('fade-out');
+                    nameBox.classList.add('fade-in');
+                }, 800);
+            }, 2000);
+
+            // 所有名字轮播结束后进入祝福环节
+            setTimeout(() => {
+                clearInterval(nameInterval);
+                nameBox.classList.add('fade-out');
+                title.classList.add('fade-out');
+
+                setTimeout(() => {
+                    nameContainer.style.display = 'none';
+                    title.style.display = 'none';
+                    loading.style.display = 'block';
+
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                        document.body.style.overflow = 'hidden';
+                        startBlessing();
+                    }, 1500);
+                }, 800);
+            }, names.length * 2000 + 1000);
+        }
+
+        // 祝福语逻辑
+        const baseBlessings = [
+            "万事顺意，平安喜乐", "所求皆如愿，所行皆坦途", "日子滚烫，未来可期",
+            "平安喜乐，得偿所愿", "顺顺利利，健健康康", "好运连连，福气满满",
+            "心想事成，万事如意", "前程似锦，未来可期", "温暖常在，笑容常在",
+            "岁岁常欢愉，年年皆胜意", "愿你三冬暖，春不寒，天黑有灯，下雨有伞",
+            "生活明朗，万物可爱，你也一样", "每一步都有风景，每一天都有惊喜",
+            "愿你眼中有光，脚下有路，心中有方向", "日子有盼头，生活才可爱，愿你常开心",
+            "不畏将来，不念过往，当下即是最好", "愿你遍历山河，觉得人间值得",
+            "平安无疾，喜乐长安，四季安康", "努力皆有回报，付出都有收获",
+            "愿你被世界温柔以待，也能温柔待人", "时光荏苒，愿你初心不改，热情常在",
+            "每一天都是新的开始，愿你充满力量", "愿你有能力爱自己，有余力爱别人",
+            "生活虽忙，别忘抬头看看月亮", "愿所有美好，都如期而至",
+            "步履不停，未来可期，加油呀", "愿你所得皆所期，所失皆无碍",
+            "保持热爱，奔赴山海，未来可期", "愿你平安喜乐，一生被爱",
+            "简单纯粹，自在随心，快乐就好", "愿你如星辰，明亮不黯淡，温暖有光芒",
+            "日子慢慢过，好运慢慢來，一切都值得", "愿你有盔甲也有软肋，活得自由又热烈",
+            "平凡的日子里，也要闪闪发光呀", "愿你走过的弯路，都变成风景",
+            "生活有滋有味，日子有盼有望", "愿你不慌不忙，向阳生长",
+            "平安顺遂，不止今天，而是每一天", "愿你眼里有星河，心中藏月光",
+            "把烦恼丢掉，腾出地方装鲜花", "愿你所到之处，遍地阳光",
+            "日子清净，抬头皆是温柔", "愿你付出甘之如饴，所得归于欢喜",
+            "生活或许平凡，但你要有趣", "愿你被温柔以待，也能勇敢去爱",
+            "每天进步一点点，就是最好的状态", "愿你历尽千帆，归来仍是少年",
+            "阳光正好，微风不燥，一切都刚刚好", "愿你有说走就走的勇气，也有安稳度日的底气",
+            "愿每个平凡的日子，都闪着不平凡的光"
+        ];
+
+        // 生成带名字的祝福语
+        const allBlessings = [];
+        names.forEach(name => {
+            baseBlessings.forEach(blessing => {
+                allBlessings.push(`${name}，${blessing}`);
+            });
+        });
+
+        // 卡片背景色
+        const colors = [
+            "#fff0f3", "#e6f7ff", "#f0fff4", "#fff7e6", "#f9f0ff", 
+            "#fff0e6", "#e6f4ff", "#f5f0ff", "#e6fff0", "#fffbe6"
+        ];
+
+        // 生成祝福卡片
+        function startBlessing() {
+            let count = 0;
+            const total = 150;
+
+            function createCard() {
+                if (count >= total) return;
+
+                const card = document.createElement("div");
+                card.className = "card";
+                card.innerText = allBlessings[Math.floor(Math.random() * allBlessings.length)];
+                card.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                card.style.left = Math.random() * (window.innerWidth - 220) + "px";
+                card.style.top = Math.random() * (window.innerHeight - 120) + "px";
+                card.style.transform = `rotate(${Math.random() * 24 - 12}deg)`;
+                document.body.appendChild(card);
+
+                count++;
+                setTimeout(createCard, 150);
+            }
+
+            createCard();
+        }
+
+        // 音乐控制按钮
+        musicControl.addEventListener('click', () => {
+            if (isPlaying) {
+                bgMusic.pause();
+                musicIcon.classList.remove('music-pause');
+            } else {
+                bgMusic.play();
+                musicIcon.classList.add('music-pause');
+            }
+            isPlaying = !isPlaying;
+        });
+    </script>
+</body>
+</html>
